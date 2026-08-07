@@ -71,4 +71,4 @@ This is a static site — no build step.
 ## Extending
 
 - No framework dependencies — all state is in-memory JS + localStorage.
-- The trip list merges staples and selected recipes' ingredients by lowercased name; if an item appears in multiple sources, they're listed together (e.g. "Milk — Staple (1 gal) + Pancakes (1 cup)") rather than duplicated.
+- The trip list does NOT merge duplicate ingredient names — if "Milk" is both a staple and a recipe ingredient, it shows up as two separate rows sorted next to each other. Recipe-origin rows carry a badge naming the recipe (and amount/unit) so you can tell at a glance why an item's on the list.

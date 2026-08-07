@@ -233,6 +233,11 @@
     font-size:11px; font-weight:600; color:var(--text-dim); background:var(--panel2); border:1px solid var(--border);
     padding:3px 9px; border-radius:999px; white-space:nowrap;
   }
+  .recipe-tag{
+    font-size:11px; font-weight:600; color:var(--accent); background:var(--accent-glow); border:1px solid rgba(251,146,60,.3);
+    padding:3px 9px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; max-width:55%;
+    overflow:hidden; text-overflow:ellipsis;
+  }
   .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--text-faint); display:inline-block; transition:background .2s;}
   .sync-dot.ok{background:var(--accent); box-shadow:0 0 6px rgba(251,146,60,.7);}
   .sync-dot.err{background:var(--danger);}
@@ -552,7 +557,7 @@ function addIngredientRow(ing){
       <button class="icon-btn" onclick="this.closest('.ing-group').remove()">✕</button>
     </div>
     <div class="ing-bottom">
-      <input type="text" class="ing-amt" placeholder="Amt" value="${ing?escapeHtml(ing.amount||""):""}">
+      <input type="text" class="ing-amt" placeholder="Amt" value="${ing?escapeHtml(ing.amount||ing.qty||""):""}">
       <select class="ing-unit">${unitOptions}</select>
       <select class="ing-cat">${catOptions}</select>
     </div>
@@ -711,37 +716,28 @@ function startNewTrip(){
   renderTrip();
 }
 function generateTrip(){
-  const map = {}; // key: lowercase name -> item
+  const list = [];
   staples.forEach(s=>{
-    const key = s.name.trim().toLowerCase();
-    map[key] = { name: s.name, category: s.category||"Other", sources:["Staple"+(s.qty?` (${s.qty})`:"")], checked:false };
+    if(!s.name.trim()) return;
+    list.push({ name: s.name, category: s.category||"Other", origin:"staple", tag: s.qty||"", checked:false });
   });
   trip.selected.forEach(rid=>{
     const r = recipes.find(r=>r.id===rid);
     if(!r) return;
     (r.ingredients||[]).forEach(ing=>{
-      const key = ing.name.trim().toLowerCase();
-      if(!key) return;
-      const amtUnit = [ing.amount, ing.unit].filter(Boolean).join(" ").trim();
-      const label = `${r.name}${amtUnit?` (${amtUnit})`:""}`;
-      if(map[key]){
-        map[key].sources.push(label);
-      }else{
-        map[key] = { name: ing.name, category: ing.category||"Other", sources:[label], checked:false };
-      }
+      if(!ing.name.trim()) return;
+      const amtUnit = [ing.amount||ing.qty, ing.unit].filter(Boolean).join(" ").trim();
+      list.push({ name: ing.name, category: ing.category||"Other", origin:"recipe", recipeName: r.name, tag: amtUnit, checked:false });
     });
   });
   trip.checksOut.forEach(cid=>{
     const c = checkItems.find(c=>c.id===cid);
     if(!c) return;
-    const key = c.name.trim().toLowerCase();
-    if(map[key]){
-      map[key].sources.push("Out of it");
-    }else{
-      map[key] = { name: c.name, category: c.category||"Other", sources:["Out of it"], checked:false };
-    }
+    list.push({ name: c.name, category: c.category||"Other", origin:"check", tag:"", checked:false });
   });
-  trip.list = Object.values(map);
+  // Same-name items sort adjacent to each other within their category group, without merging.
+  list.sort((a,b)=> a.name.trim().toLowerCase().localeCompare(b.name.trim().toLowerCase()));
+  trip.list = list;
   trip.active = true;
   persistTrip();
   renderTrip();
@@ -765,10 +761,18 @@ function renderTripList(){
     if(!items || !items.length) return;
     html += `<div class="section-title">${cat}</div><div class="card">`;
     items.forEach(item=>{
+      let tagHtml;
+      if(item.origin==="recipe"){
+        tagHtml = `<span class="recipe-tag">🍳 ${escapeHtml(item.recipeName)}${item.tag?` · ${escapeHtml(item.tag)}`:""}</span>`;
+      }else if(item.origin==="check"){
+        tagHtml = `<span class="cat-badge">Out of it</span>`;
+      }else{
+        tagHtml = item.tag ? `<div class="qty">${escapeHtml(item.tag)}</div>` : "";
+      }
       html += `<div class="item ${item.checked?"checked":""}">
         <div class="checkbox ${item.checked?"checked":""}" onclick="toggleTripItem(${item.idx})">${item.checked?"✓":""}</div>
         <div class="name">${escapeHtml(item.name)}</div>
-        <div class="qty">${item.sources.map(escapeHtml).join(" + ")}</div>
+        ${tagHtml}
       </div>`;
     });
     html += `</div>`;
