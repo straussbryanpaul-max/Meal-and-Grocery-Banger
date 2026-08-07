@@ -7,6 +7,7 @@
     "mg_mk": "JSONBin master key (string)",
     "mg_staples": "JSON array of Staple objects",
     "mg_recipes": "JSON array of Recipe objects",
+    "mg_checks": "JSON array of CheckItem objects",
     "mg_trip": "Current trip state (Trip object) — device-local only, not synced"
   },
 
@@ -38,7 +39,19 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
-        "qty": { "type": "string" },
+        "amount": { "type": "string", "description": "Free-text amount, e.g. '2' or '1 1/2'" },
+        "unit": { "type": "string", "description": "e.g. 'cup', 'tbsp', 'oz', 'lb', 'clove'. Empty string means unitless (e.g. '3 eggs')." },
+        "category": { "type": "string", "enum": ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"] }
+      }
+    },
+
+    "CheckItem": {
+      "type": "object",
+      "description": "An occasional item — not bought every trip. Reviewed each trip; only added to the list if marked 'out of it'.",
+      "required": ["id", "name", "category"],
+      "properties": {
+        "id": { "type": "number" },
+        "name": { "type": "string" },
         "category": { "type": "string", "enum": ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"] }
       }
     },
@@ -48,6 +61,7 @@
       "description": "Active shopping trip — device-local, not synced to cloud.",
       "properties": {
         "selected": { "type": "array", "items": { "type": "number" }, "description": "Recipe IDs chosen for this trip" },
+        "checksOut": { "type": "array", "items": { "type": "number" }, "description": "CheckItem IDs marked 'out of it' for this trip" },
         "active": { "type": "boolean", "description": "True once the list has been generated" },
         "list": {
           "type": "array",
@@ -69,7 +83,7 @@
     "provider": "JSONBin.io",
     "endpoint": "https://api.jsonbin.io/v3/b/{BIN_ID}",
     "auth_header": "X-Master-Key",
-    "payload": { "staples": "Staple[]", "recipes": "Recipe[]" },
+    "payload": { "staples": "Staple[]", "recipes": "Recipe[]", "checkItems": "CheckItem[]" },
     "notes": "Pull on load, push (debounced) on every change. Trip state is NOT synced — it's a device-local shopping session."
   }
 }

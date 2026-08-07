@@ -8,9 +8,10 @@ A grocery list + recipe app. Single-file web app — open `index.html` and go. N
 
 | View | Description |
 |------|-------------|
-| **Staples** | The stuff you always buy — milk, eggs, coffee. Add once, keep forever. |
-| **Recipes** | Save your go-to meals with ingredients and instructions. |
-| **Trip** | Hit "New Trip", pick which meals you're making, and get a shopping list = your staples + those recipes' ingredients, merged and grouped by aisle. Check items off as you shop. |
+| **Staples** | The stuff you always buy — milk, eggs, coffee. Add once, keep forever. Always included in the trip list. |
+| **Recipes** | Save your go-to meals with ingredients (amount + unit) and instructions. |
+| **Check** | Occasional stuff — olive oil, batteries, foil. Not bought every trip; reviewed each time and only added if you say you're out. |
+| **Trip** | Hit "New Trip", pick which meals you're making and what you're out of, and get a shopping list = staples + those recipes' ingredients + anything marked out, merged and grouped by aisle. Check items off as you shop. |
 
 ---
 
@@ -30,7 +31,7 @@ npx serve . -p 3000
 Tap the **gear icon** (top right) to enable sync across devices:
 
 1. Create a free account at [jsonbin.io](https://jsonbin.io)
-2. Create a new bin with initial content: `{"staples":[],"recipes":[]}`
+2. Create a new bin with initial content: `{"staples":[],"recipes":[],"checkItems":[]}`
 3. Paste the **Bin ID** and **Master Key** into Settings
 
 Credentials are stored in `localStorage` only. See `.env.example` for reference.
@@ -49,8 +50,8 @@ data-schema.json     ← all data structures documented
 
 | What | Where |
 |------|-------|
-| Staples, recipes | `localStorage`, synced to JSONBin.io |
-| Active trip (selected meals, checked items) | `localStorage` only, device-local |
+| Staples, recipes, check items | `localStorage`, synced to JSONBin.io |
+| Active trip (selected meals, checks-out, checked items) | `localStorage` only, device-local |
 
 `localStorage` keys are prefixed `mg_`. See `data-schema.json` for full schemas.
 
