@@ -1,0 +1,19 @@
+{
+  "name": "meal-and-grocery-banger",
+  "version": "1.0.0",
+  "description": "Grocery + recipe app. Keep a staples list, save recipes, and generate a shopping list for a trip by picking meals.",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["grocery", "recipes", "meal-planning", "shopping-list"],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "serve": "^14.2.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

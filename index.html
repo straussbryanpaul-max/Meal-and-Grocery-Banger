@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meal &amp; Grocery Banger</title>
+<meta name="theme-color" content="#0f1115">
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#171a21;
+    --panel2:#1e222b;
+    --border:#2a2f3a;
+    --text:#eef0f4;
+    --text-dim:#9aa1b1;
+    --accent:#5eead4;
+    --accent2:#f59e0b;
+    --danger:#f87171;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(160deg,#0f1115,#161a22 60%,#12151c);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    padding-bottom:84px;
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px 12px;
+    background:rgba(15,17,21,0.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  header h1{
+    font-size:18px; margin:0; display:flex; align-items:center; gap:8px; letter-spacing:.2px;
+  }
+  header h1 .emoji{font-size:20px;}
+  .gear-btn{
+    background:none; border:none; color:var(--text-dim); font-size:20px; cursor:pointer;
+    width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  }
+  .gear-btn:active{background:var(--panel2);}
+  main{max-width:640px; margin:0 auto; padding:16px;}
+  .view{display:none;}
+  .view.active{display:block; animation:fade .15s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px;
+  }
+  .section-title{
+    font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim);
+    margin:20px 0 8px; padding-left:2px;
+  }
+  .section-title:first-child{margin-top:0;}
+
+  input[type=text], input[type=number], textarea, select{
+    width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    border-radius:10px; padding:10px 12px; font-size:15px; font-family:inherit;
+  }
+  input::placeholder, textarea::placeholder{color:#5b6172;}
+  textarea{resize:vertical; min-height:60px;}
+  label.f{display:block; font-size:12px; color:var(--text-dim); margin:10px 0 4px;}
+  label.f:first-child{margin-top:0;}
+
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:10px;
+  }
+  .btn{
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    padding:9px 14px; font-size:14px; font-weight:500;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn-accent{background:var(--accent); color:#06231e; border:none; font-weight:600;}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid rgba(248,113,113,.35);}
+  .btn-block{width:100%; padding:12px; font-size:15px;}
+  .btn-sm{padding:6px 10px; font-size:13px;}
+  .row{display:flex; gap:8px;}
+  .row > *{flex:1;}
+
+  .item{
+    display:flex; align-items:center; gap:10px; padding:10px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  .item:last-child{border-bottom:none;}
+  .item .name{flex:1; font-size:15px;}
+  .item .qty{color:var(--text-dim); font-size:13px;}
+  .item .icon-btn{
+    background:none; color:var(--text-dim); font-size:16px; padding:4px 6px; border-radius:6px;
+  }
+  .icon-btn:active{background:var(--panel2);}
+
+  .checkbox{
+    width:22px; height:22px; border-radius:7px; border:2px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;
+    font-size:13px; color:transparent;
+  }
+  .checkbox.checked{background:var(--accent); border-color:var(--accent); color:#06231e;}
+  .item.checked .name{text-decoration:line-through; color:var(--text-dim);}
+
+  .empty{
+    text-align:center; color:var(--text-dim); padding:36px 20px; font-size:14px; line-height:1.6;
+  }
+  .empty .big{font-size:32px; display:block; margin-bottom:8px;}
+
+  nav.tabs{
+    position:fixed; bottom:0; left:0; right:0; z-index:20;
+    display:flex; background:rgba(23,26,33,0.95); backdrop-filter:blur(10px);
+    border-top:1px solid var(--border);
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  nav.tabs button{
+    flex:1; background:none; color:var(--text-dim); padding:8px 4px; font-size:11px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; font-weight:500;
+  }
+  nav.tabs button .ic{font-size:19px;}
+  nav.tabs button.active{color:var(--accent);}
+
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:50;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--panel); border:1px solid var(--border); border-radius:18px 18px 0 0;
+    width:100%; max-width:640px; max-height:88vh; overflow-y:auto;
+    padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+    animation:up .18s ease;
+  }
+  @media (min-width:640px){
+    .modal-backdrop{align-items:center;}
+    .modal{border-radius:16px; max-height:80vh;}
+  }
+  @keyframes up{from{transform:translateY(16px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .modal-head h2{font-size:17px; margin:0;}
+  .close-x{background:none; color:var(--text-dim); font-size:20px; padding:4px 8px;}
+
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--panel2); border:1px solid var(--border);
+    border-radius:999px; padding:6px 12px; font-size:13px; cursor:pointer; margin:0 6px 6px 0;
+  }
+  .chip.selected{background:var(--accent); color:#06231e; border-color:var(--accent); font-weight:600;}
+
+  .ing-row{display:flex; gap:6px; margin-bottom:6px; align-items:center;}
+  .ing-row input{flex:1;}
+  .ing-row input.qty{flex:0 0 90px;}
+  .ing-row select{flex:0 0 118px; font-size:13px; padding:9px 6px;}
+
+  .recipe-card{cursor:pointer;}
+  .recipe-card .rc-head{display:flex; justify-content:space-between; align-items:center;}
+  .recipe-card .rc-title{font-size:16px; font-weight:600;}
+  .recipe-card .rc-meta{color:var(--text-dim); font-size:13px; margin-top:2px;}
+
+  .toast{
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:10px 16px; border-radius:10px; font-size:13px; z-index:60;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .toast.show{opacity:1;}
+
+  .cat-badge{
+    font-size:11px; color:var(--text-dim); background:var(--panel2); border:1px solid var(--border);
+    padding:2px 8px; border-radius:999px; white-space:nowrap;
+  }
+  .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--text-dim); display:inline-block;}
+  .sync-dot.ok{background:var(--accent);}
+  .sync-dot.err{background:var(--danger);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="emoji">🛒</span> Meal &amp; Grocery Banger</h1>
+  <button class="gear-btn" onclick="openSettings()">⚙️</button>
+</header>
+
+<main>
+
+  <!-- STAPLES VIEW -->
+  <section id="view-staples" class="view">
+    <div class="card">
+      <label class="f">Add a staple</label>
+      <div class="row">
+        <input type="text" id="stapleName" placeholder="e.g. Milk">
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <input type="text" id="stapleQty" placeholder="Qty (optional, e.g. 1 gal)">
+        <select id="stapleCat"></select>
+      </div>
+      <button class="btn btn-accent btn-block" style="margin-top:10px;" onclick="addStaple()">+ Add Staple</button>
+    </div>
+    <div id="staplesList"></div>
+  </section>
+
+  <!-- RECIPES VIEW -->
+  <section id="view-recipes" class="view">
+    <button class="btn btn-accent btn-block" onclick="openRecipeEditor()">+ New Recipe</button>
+    <div id="recipesList" style="margin-top:14px;"></div>
+  </section>
+
+  <!-- TRIP VIEW -->
+  <section id="view-trip" class="view">
+    <div id="tripPicker"></div>
+    <div id="tripListWrap"></div>
+  </section>
+
+</main>
+
+<nav class="tabs">
+  <button data-view="staples" onclick="showView('staples')"><span class="ic">🥫</span>Staples</button>
+  <button data-view="recipes" onclick="showView('recipes')"><span class="ic">📖</span>Recipes</button>
+  <button data-view="trip" onclick="showView('trip')"><span class="ic">🧺</span>Trip</button>
+</nav>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Settings</h2>
+      <button class="close-x" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <p style="color:var(--text-dim); font-size:13px; line-height:1.5;">
+      Cloud sync keeps your staples and recipes backed up and available on other devices via
+      <a href="https://jsonbin.io" target="_blank" style="color:var(--accent);">JSONBin.io</a> (free).
+      Create a bin with initial content <code>{"staples":[],"recipes":[]}</code>, then paste its ID and your Master Key below.
+      Credentials are stored only in this browser's localStorage.
+    </p>
+    <label class="f">JSONBin Bin ID</label>
+    <input type="text" id="setBinId" placeholder="e.g. 64f0...">
+    <label class="f">JSONBin Master Key</label>
+    <input type="text" id="setMasterKey" placeholder="$2a$10$...">
+    <div class="row" style="margin-top:14px;">
+      <button class="btn" onclick="closeModal('settingsModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveSettings()">Save</button>
+    </div>
+    <div style="margin-top:10px; font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+      <span class="sync-dot" id="syncDot"></span> <span id="syncStatus">Not connected</span>
+    </div>
+  </div>
+</div>
+
+<!-- RECIPE EDITOR MODAL -->
+<div class="modal-backdrop" id="recipeModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="recipeModalTitle">New Recipe</h2>
+      <button class="close-x" onclick="closeModal('recipeModal')">✕</button>
+    </div>
+    <input type="hidden" id="recipeId">
+    <label class="f">Recipe name</label>
+    <input type="text" id="recipeName" placeholder="e.g. Chicken Stir Fry">
+
+    <label class="f">Ingredients</label>
+    <div id="ingredientRows"></div>
+    <button class="btn btn-sm" style="margin-top:4px;" onclick="addIngredientRow()">+ Add ingredient</button>
+
+    <label class="f">Instructions (optional)</label>
+    <textarea id="recipeInstructions" placeholder="Steps, notes, cook time..."></textarea>
+
+    <div class="row" style="margin-top:14px;">
+      <button class="btn btn-danger" id="deleteRecipeBtn" style="display:none;" onclick="deleteRecipeFromEditor()">Delete</button>
+      <button class="btn btn-accent" style="flex:2;" onclick="saveRecipe()">Save Recipe</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Categories ---------- */
+const CATEGORIES = ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"];
+
+/* ---------- State ---------- */
+let staples = [];
+let recipes = [];
+let trip = { selected: [], list: [], active: false };
+
+/* ---------- Storage keys ---------- */
+const LS = { bid:"mg_bid", mk:"mg_mk", staples:"mg_staples", recipes:"mg_recipes", trip:"mg_trip" };
+
+function load(){
+  staples = JSON.parse(localStorage.getItem(LS.staples) || "[]");
+  recipes = JSON.parse(localStorage.getItem(LS.recipes) || "[]");
+  trip = JSON.parse(localStorage.getItem(LS.trip) || "null") || trip;
+}
+function persistLocal(){
+  localStorage.setItem(LS.staples, JSON.stringify(staples));
+  localStorage.setItem(LS.recipes, JSON.stringify(recipes));
+}
+function persistTrip(){
+  localStorage.setItem(LS.trip, JSON.stringify(trip));
+}
+
+/* ---------- Cloud sync (JSONBin) ---------- */
+function getCreds(){
+  return { binId: localStorage.getItem(LS.bid) || "", key: localStorage.getItem(LS.mk) || "" };
+}
+async function pullCloud(){
+  const { binId, key } = getCreds();
+  if(!binId || !key) return;
+  setSyncDot("");
+  try{
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers:{ "X-Master-Key": key } });
+    if(!res.ok) throw new Error("bad response");
+    const data = await res.json();
+    const rec = data.record || {};
+    if(Array.isArray(rec.staples)) staples = rec.staples;
+    if(Array.isArray(rec.recipes)) recipes = rec.recipes;
+    persistLocal();
+    renderAll();
+    setSyncDot("ok", "Synced");
+  }catch(e){
+    setSyncDot("err", "Sync failed — check credentials");
+  }
+}
+let pushTimer = null;
+function pushCloud(){
+  const { binId, key } = getCreds();
+  if(!binId || !key) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(async ()=>{
+    try{
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+        method:"PUT",
+        headers:{ "Content-Type":"application/json", "X-Master-Key": key },
+        body: JSON.stringify({ staples, recipes })
+      });
+      if(!res.ok) throw new Error("bad response");
+      setSyncDot("ok", "Synced");
+    }catch(e){
+      setSyncDot("err", "Sync failed");
+    }
+  }, 500);
+}
+function setSyncDot(state, label){
+  const dot = document.getElementById("syncDot");
+  const status = document.getElementById("syncStatus");
+  if(!dot) return;
+  dot.className = "sync-dot" + (state ? " " + state : "");
+  if(label) status.textContent = label;
+  else if(!getCreds().binId) status.textContent = "Not connected";
+  else status.textContent = "Syncing...";
+}
+
+/* ---------- Views / tabs ---------- */
+function showView(name){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+  document.getElementById("view-"+name).classList.add("active");
+  document.querySelector(`nav.tabs button[data-view="${name}"]`).classList.add("active");
+  if(name==="staples") renderStaples();
+  if(name==="recipes") renderRecipes();
+  if(name==="trip") renderTrip();
+}
+
+/* ---------- Modals ---------- */
+function openModal(id){ document.getElementById(id).classList.add("open"); }
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+function openSettings(){
+  const { binId, key } = getCreds();
+  document.getElementById("setBinId").value = binId;
+  document.getElementById("setMasterKey").value = key;
+  setSyncDot(getCreds().binId ? "ok" : "");
+  openModal("settingsModal");
+}
+function saveSettings(){
+  localStorage.setItem(LS.bid, document.getElementById("setBinId").value.trim());
+  localStorage.setItem(LS.mk, document.getElementById("setMasterKey").value.trim());
+  closeModal("settingsModal");
+  showToast("Settings saved");
+  pullCloud();
+}
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ---------- Staples ---------- */
+function populateCategorySelect(sel, value){
+  sel.innerHTML = CATEGORIES.map(c=>`<option value="${c}" ${c===value?"selected":""}>${c}</option>`).join("");
+}
+function addStaple(){
+  const nameEl = document.getElementById("stapleName");
+  const qtyEl = document.getElementById("stapleQty");
+  const catEl = document.getElementById("stapleCat");
+  const name = nameEl.value.trim();
+  if(!name) return;
+  staples.push({ id: Date.now(), name, qty: qtyEl.value.trim(), category: catEl.value });
+  nameEl.value = ""; qtyEl.value = "";
+  persistLocal(); pushCloud(); renderStaples();
+}
+function deleteStaple(id){
+  staples = staples.filter(s=>s.id!==id);
+  persistLocal(); pushCloud(); renderStaples();
+}
+function renderStaples(){
+  populateCategorySelect(document.getElementById("stapleCat"));
+  const wrap = document.getElementById("staplesList");
+  if(staples.length===0){
+    wrap.innerHTML = `<div class="empty"><span class="big">🥫</span>No staples yet.<br>Add the stuff you always need — milk, eggs, coffee...</div>`;
+    return;
+  }
+  const byCat = {};
+  staples.forEach(s=>{ (byCat[s.category||"Other"] ||= []).push(s); });
+  let html = "";
+  CATEGORIES.forEach(cat=>{
+    const items = byCat[cat];
+    if(!items || !items.length) return;
+    html += `<div class="section-title">${cat}</div><div class="card">`;
+    items.forEach(s=>{
+      html += `<div class="item">
+        <div class="name">${escapeHtml(s.name)}</div>
+        ${s.qty ? `<div class="qty">${escapeHtml(s.qty)}</div>` : ""}
+        <button class="icon-btn" onclick="deleteStaple(${s.id})">🗑️</button>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+/* ---------- Recipes ---------- */
+function openRecipeEditor(id){
+  document.getElementById("recipeId").value = id || "";
+  document.getElementById("ingredientRows").innerHTML = "";
+  if(id){
+    const r = recipes.find(r=>r.id===id);
+    document.getElementById("recipeModalTitle").textContent = "Edit Recipe";
+    document.getElementById("recipeName").value = r.name;
+    document.getElementById("recipeInstructions").value = r.instructions || "";
+    document.getElementById("deleteRecipeBtn").style.display = "";
+    (r.ingredients||[]).forEach(ing=>addIngredientRow(ing));
+  }else{
+    document.getElementById("recipeModalTitle").textContent = "New Recipe";
+    document.getElementById("recipeName").value = "";
+    document.getElementById("recipeInstructions").value = "";
+    document.getElementById("deleteRecipeBtn").style.display = "none";
+    addIngredientRow();
+  }
+  openModal("recipeModal");
+}
+function addIngredientRow(ing){
+  const wrap = document.getElementById("ingredientRows");
+  const row = document.createElement("div");
+  row.className = "ing-row";
+  const catOptions = CATEGORIES.map(c=>`<option value="${c}" ${ing&&ing.category===c?"selected":""}>${c}</option>`).join("");
+  row.innerHTML = `
+    <input type="text" class="ing-name" placeholder="Ingredient" value="${ing?escapeHtml(ing.name):""}">
+    <input type="text" class="ing-qty qty" placeholder="Qty" value="${ing?escapeHtml(ing.qty||""):""}">
+    <select class="ing-cat">${catOptions}</select>
+    <button class="icon-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  wrap.appendChild(row);
+}
+function saveRecipe(){
+  const idVal = document.getElementById("recipeId").value;
+  const name = document.getElementById("recipeName").value.trim();
+  if(!name){ showToast("Recipe needs a name"); return; }
+  const ingredients = Array.from(document.querySelectorAll("#ingredientRows .ing-row")).map(row=>({
+    name: row.querySelector(".ing-name").value.trim(),
+    qty: row.querySelector(".ing-qty").value.trim(),
+    category: row.querySelector(".ing-cat").value
+  })).filter(i=>i.name);
+  const instructions = document.getElementById("recipeInstructions").value.trim();
+
+  if(idVal){
+    const r = recipes.find(r=>r.id===Number(idVal));
+    r.name = name; r.ingredients = ingredients; r.instructions = instructions;
+  }else{
+    recipes.push({ id: Date.now(), name, ingredients, instructions });
+  }
+  persistLocal(); pushCloud();
+  closeModal("recipeModal");
+  renderRecipes();
+  showToast("Recipe saved");
+}
+function deleteRecipeFromEditor(){
+  const idVal = Number(document.getElementById("recipeId").value);
+  if(!idVal) return;
+  recipes = recipes.filter(r=>r.id!==idVal);
+  trip.selected = trip.selected.filter(id=>id!==idVal);
+  persistLocal(); persistTrip(); pushCloud();
+  closeModal("recipeModal");
+  renderRecipes();
+  showToast("Recipe deleted");
+}
+function renderRecipes(){
+  const wrap = document.getElementById("recipesList");
+  if(recipes.length===0){
+    wrap.innerHTML = `<div class="empty"><span class="big">📖</span>No recipes yet.<br>Add the meals you make often.</div>`;
+    return;
+  }
+  wrap.innerHTML = recipes.map(r=>`
+    <div class="card recipe-card" onclick="openRecipeEditor(${r.id})">
+      <div class="rc-head">
+        <div class="rc-title">${escapeHtml(r.name)}</div>
+        <span class="cat-badge">${r.ingredients.length} ingr.</span>
+      </div>
+      <div class="rc-meta">${r.ingredients.slice(0,4).map(i=>escapeHtml(i.name)).join(", ")}${r.ingredients.length>4?"...":""}</div>
+    </div>
+  `).join("");
+}
+
+/* ---------- Trip ---------- */
+function renderTrip(){
+  renderTripPicker();
+  renderTripList();
+}
+function renderTripPicker(){
+  const wrap = document.getElementById("tripPicker");
+  if(!trip.active){
+    if(recipes.length===0){
+      wrap.innerHTML = `<div class="empty"><span class="big">🧺</span>Add some recipes first, then start a trip.</div>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <div class="card">
+        <div class="section-title" style="margin-top:0;">Pick your meals</div>
+        <div id="mealChips">${recipes.map(r=>`
+          <span class="chip ${trip.selected.includes(r.id)?"selected":""}" onclick="toggleMeal(${r.id})">${escapeHtml(r.name)}</span>
+        `).join("")}</div>
+        <button class="btn btn-accent btn-block" style="margin-top:12px;" onclick="generateTrip()">Generate List →</button>
+      </div>
+    `;
+  }else{
+    wrap.innerHTML = `
+      <div class="row" style="margin-bottom:6px;">
+        <button class="btn" onclick="editTripMeals()">← Edit Meals</button>
+        <button class="btn btn-danger" onclick="startNewTrip()">Start New Trip</button>
+      </div>
+    `;
+  }
+}
+function toggleMeal(id){
+  const i = trip.selected.indexOf(id);
+  if(i===-1) trip.selected.push(id); else trip.selected.splice(i,1);
+  renderTripPicker();
+}
+function editTripMeals(){
+  trip.active = false;
+  persistTrip();
+  renderTrip();
+}
+function startNewTrip(){
+  trip = { selected: [], list: [], active: false };
+  persistTrip();
+  renderTrip();
+}
+function generateTrip(){
+  const map = {}; // key: lowercase name -> item
+  staples.forEach(s=>{
+    const key = s.name.trim().toLowerCase();
+    map[key] = { name: s.name, category: s.category||"Other", sources:["Staple"+(s.qty?` (${s.qty})`:"")], checked:false };
+  });
+  trip.selected.forEach(rid=>{
+    const r = recipes.find(r=>r.id===rid);
+    if(!r) return;
+    (r.ingredients||[]).forEach(ing=>{
+      const key = ing.name.trim().toLowerCase();
+      if(!key) return;
+      const label = `${r.name}${ing.qty?` (${ing.qty})`:""}`;
+      if(map[key]){
+        map[key].sources.push(label);
+      }else{
+        map[key] = { name: ing.name, category: ing.category||"Other", sources:[label], checked:false };
+      }
+    });
+  });
+  trip.list = Object.values(map);
+  trip.active = true;
+  persistTrip();
+  renderTrip();
+}
+function toggleTripItem(idx){
+  trip.list[idx].checked = !trip.list[idx].checked;
+  persistTrip();
+  renderTripList();
+}
+function renderTripList(){
+  const wrap = document.getElementById("tripListWrap");
+  if(!trip.active || trip.list.length===0){
+    wrap.innerHTML = "";
+    return;
+  }
+  const byCat = {};
+  trip.list.forEach((item, idx)=>{ (byCat[item.category||"Other"] ||= []).push({...item, idx}); });
+  let html = "";
+  CATEGORIES.forEach(cat=>{
+    const items = byCat[cat];
+    if(!items || !items.length) return;
+    html += `<div class="section-title">${cat}</div><div class="card">`;
+    items.forEach(item=>{
+      html += `<div class="item ${item.checked?"checked":""}">
+        <div class="checkbox ${item.checked?"checked":""}" onclick="toggleTripItem(${item.idx})">${item.checked?"✓":""}</div>
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div class="qty">${item.sources.map(escapeHtml).join(" + ")}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  const checkedCount = trip.list.filter(i=>i.checked).length;
+  html = `<div class="section-title" style="margin-top:20px;">${checkedCount}/${trip.list.length} collected</div>` + html;
+  wrap.innerHTML = html;
+}
+
+/* ---------- Utils ---------- */
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+function renderAll(){
+  renderStaples(); renderRecipes(); renderTrip();
+}
+
+/* ---------- Init ---------- */
+load();
+showView("staples");
+pullCloud();
+</script>
+</body>
+</html>

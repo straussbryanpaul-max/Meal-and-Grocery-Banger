@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Meal & Grocery Banger — data structures stored in localStorage and synced to JSONBin.",
+
+  "localStorage_keys": {
+    "mg_bid": "JSONBin bin ID (string)",
+    "mg_mk": "JSONBin master key (string)",
+    "mg_staples": "JSON array of Staple objects",
+    "mg_recipes": "JSON array of Recipe objects",
+    "mg_trip": "Current trip state (Trip object) — device-local only, not synced"
+  },
+
+  "schemas": {
+    "Staple": {
+      "type": "object",
+      "required": ["id", "name", "category"],
+      "properties": {
+        "id": { "type": "number", "description": "Unix timestamp (Date.now()) used as unique ID" },
+        "name": { "type": "string" },
+        "qty": { "type": "string", "description": "Free-text quantity, e.g. '1 gal'" },
+        "category": { "type": "string", "enum": ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"] }
+      }
+    },
+
+    "Recipe": {
+      "type": "object",
+      "required": ["id", "name", "ingredients"],
+      "properties": {
+        "id": { "type": "number" },
+        "name": { "type": "string" },
+        "ingredients": { "type": "array", "items": { "$ref": "#/schemas/Ingredient" } },
+        "instructions": { "type": "string" }
+      }
+    },
+
+    "Ingredient": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "qty": { "type": "string" },
+        "category": { "type": "string", "enum": ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"] }
+      }
+    },
+
+    "Trip": {
+      "type": "object",
+      "description": "Active shopping trip — device-local, not synced to cloud.",
+      "properties": {
+        "selected": { "type": "array", "items": { "type": "number" }, "description": "Recipe IDs chosen for this trip" },
+        "active": { "type": "boolean", "description": "True once the list has been generated" },
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "category": { "type": "string" },
+              "sources": { "type": "array", "items": { "type": "string" }, "description": "Where this item came from, e.g. 'Staple (1 gal)' or 'Chicken Stir Fry (2 lb)'" },
+              "checked": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "cloud_sync": {
+    "provider": "JSONBin.io",
+    "endpoint": "https://api.jsonbin.io/v3/b/{BIN_ID}",
+    "auth_header": "X-Master-Key",
+    "payload": { "staples": "Staple[]", "recipes": "Recipe[]" },
+    "notes": "Pull on load, push (debounced) on every change. Trip state is NOT synced — it's a device-local shopping session."
+  }
+}
