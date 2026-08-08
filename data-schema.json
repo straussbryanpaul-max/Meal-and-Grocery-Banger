@@ -10,7 +10,8 @@
     "mg_recipes": "JSON array of Recipe objects",
     "mg_checks": "JSON array of CheckItem objects",
     "mg_trip": "Current trip state (Trip object) — device-local only, not synced",
-    "mg_lastmeals": "Snapshot of the recipes selected on the last completed trip (array of {id, name}) — device-local only, not synced"
+    "mg_lastmeals": "Snapshot of the recipes selected on the last completed trip (array of {id, name}) — device-local only, not synced",
+    "mg_lastlist": "Snapshot of the full line-item list (with checked state) from the last completed trip, so it stays viewable after starting a new one — device-local only, not synced"
   },
 
   "schemas": {

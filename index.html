@@ -420,9 +420,10 @@ let recipes = [];
 let checkItems = [];
 let trip = { selected: [], checksOut: [], list: [], active: false };
 let lastMeals = [];
+let lastList = [];
 
 /* ---------- Storage keys ---------- */
-const LS = { bid:"mg_bid", mk:"mg_mk", ak:"mg_ak", staples:"mg_staples", recipes:"mg_recipes", checks:"mg_checks", trip:"mg_trip", lastMeals:"mg_lastmeals" };
+const LS = { bid:"mg_bid", mk:"mg_mk", ak:"mg_ak", staples:"mg_staples", recipes:"mg_recipes", checks:"mg_checks", trip:"mg_trip", lastMeals:"mg_lastmeals", lastList:"mg_lastlist" };
 
 function load(){
   staples = JSON.parse(localStorage.getItem(LS.staples) || "[]");
@@ -431,6 +432,7 @@ function load(){
   trip = JSON.parse(localStorage.getItem(LS.trip) || "null") || trip;
   if(!trip.checksOut) trip.checksOut = [];
   lastMeals = JSON.parse(localStorage.getItem(LS.lastMeals) || "[]");
+  lastList = JSON.parse(localStorage.getItem(LS.lastList) || "[]");
 }
 function persistLocal(){
   localStorage.setItem(LS.staples, JSON.stringify(staples));
@@ -822,11 +824,6 @@ function renderTrip(){
 function renderTripPicker(){
   const wrap = document.getElementById("tripPicker");
   if(!trip.active){
-    if(recipes.length===0 && checkItems.length===0){
-      wrap.innerHTML = `<div class="empty"><span class="big">🧺</span><strong>Nothing to pick from yet</strong>Add some recipes or check items, or just generate a list from your staples.</div>
-        <button class="btn btn-accent btn-block" onclick="generateTrip()">Generate List →</button>`;
-      return;
-    }
     let html = "";
     if(lastMeals.length>0){
       html += `
@@ -837,6 +834,23 @@ function renderTripPicker(){
           </div>
         </div>
       `;
+    }
+    if(lastList.length>0){
+      html += `
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="toggleLastListView()">
+            <div class="section-title" style="margin:0;">What you shopped for last time (${lastList.length} items)</div>
+            <span id="lastListToggleIcon" style="color:var(--text-dim); font-size:12px;">▾</span>
+          </div>
+          <div id="lastListView" style="display:none;"></div>
+        </div>
+      `;
+    }
+    if(recipes.length===0 && checkItems.length===0){
+      html += `<div class="empty"><span class="big">🧺</span><strong>Nothing to pick from yet</strong>Add some recipes or check items, or just generate a list from your staples.</div>
+        <button class="btn btn-accent btn-block" onclick="generateTrip()">Generate List →</button>`;
+      wrap.innerHTML = html;
+      return;
     }
     html += `<div class="card">`;
     if(recipes.length>0){
@@ -906,9 +920,41 @@ function startNewTrip(){
       .map(r=>({id:r.id, name:r.name}));
     localStorage.setItem(LS.lastMeals, JSON.stringify(lastMeals));
   }
+  if(trip.list && trip.list.length){
+    lastList = trip.list;
+    localStorage.setItem(LS.lastList, JSON.stringify(lastList));
+  }
   trip = { selected: [], checksOut: [], list: [], active: false };
   persistTrip();
   renderTrip();
+}
+function toggleLastListView(){
+  const wrap = document.getElementById("lastListView");
+  const icon = document.getElementById("lastListToggleIcon");
+  if(!wrap) return;
+  const opening = wrap.style.display === "none";
+  wrap.style.display = opening ? "" : "none";
+  if(icon) icon.textContent = opening ? "▴" : "▾";
+  if(opening) renderLastListView();
+}
+function renderLastListView(){
+  const wrap = document.getElementById("lastListView");
+  if(!wrap) return;
+  const byCat = {};
+  lastList.forEach(item=>{ (byCat[item.category||"Other"] ||= []).push(item); });
+  let html = "";
+  CATEGORIES.forEach(cat=>{
+    const items = byCat[cat];
+    if(!items || !items.length) return;
+    html += `<div style="font-size:11px; font-weight:700; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin:12px 0 4px;">${cat}</div>`;
+    items.forEach(item=>{
+      html += `<div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13.5px; ${item.checked?"color:var(--text-faint);":"color:var(--text);"}">
+        <span style="width:16px; flex-shrink:0; color:var(--accent);">${item.checked?"✓":""}</span>
+        <span style="${item.checked?"text-decoration:line-through;":""}">${escapeHtml(item.name)}</span>
+      </div>`;
+    });
+  });
+  wrap.innerHTML = html;
 }
 function generateTrip(){
   const list = [];
