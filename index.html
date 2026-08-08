@@ -445,6 +445,16 @@ function persistTrip(){
 function getCreds(){
   return { binId: localStorage.getItem(LS.bid) || "", key: localStorage.getItem(LS.mk) || "" };
 }
+function mergeById(local, remote){
+  // Additive merge: local wins on id conflicts (protects unsynced local
+  // edits), and anything local-only that hasn't reached the cloud yet is
+  // kept rather than dropped. Remote-only items (from other devices) are
+  // pulled in.
+  const map = new Map();
+  (remote||[]).forEach(item=>{ if(item && item.id!=null) map.set(item.id, item); });
+  (local||[]).forEach(item=>{ if(item && item.id!=null) map.set(item.id, item); });
+  return Array.from(map.values());
+}
 async function pullCloud(){
   const { binId, key } = getCreds();
   if(!binId || !key) return;
@@ -454,22 +464,21 @@ async function pullCloud(){
     if(!res.ok) throw new Error("bad response");
     const data = await res.json();
     const rec = data.record || {};
-    if(Array.isArray(rec.staples)) staples = rec.staples;
-    if(Array.isArray(rec.recipes)) recipes = rec.recipes;
-    if(Array.isArray(rec.checkItems)) checkItems = rec.checkItems;
+    if(Array.isArray(rec.staples)) staples = mergeById(staples, rec.staples);
+    if(Array.isArray(rec.recipes)) recipes = mergeById(recipes, rec.recipes);
+    if(Array.isArray(rec.checkItems)) checkItems = mergeById(checkItems, rec.checkItems);
     persistLocal();
     renderAll();
     setSyncDot("ok", "Synced");
+    pushCloud(); // write the merged result back so the cloud picks up anything it was missing
   }catch(e){
     setSyncDot("err", "Sync failed — check credentials");
   }
 }
-let pushTimer = null;
 function pushCloud(){
   const { binId, key } = getCreds();
   if(!binId || !key) return;
-  clearTimeout(pushTimer);
-  pushTimer = setTimeout(async ()=>{
+  (async ()=>{
     try{
       const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
         method:"PUT",
@@ -481,7 +490,7 @@ function pushCloud(){
     }catch(e){
       setSyncDot("err", "Sync failed");
     }
-  }, 500);
+  })();
 }
 function setSyncDot(state, label){
   const dot = document.getElementById("syncDot");
