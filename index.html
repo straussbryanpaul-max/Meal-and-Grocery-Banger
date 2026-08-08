@@ -803,12 +803,25 @@ function renderTripPicker(){
     html += `<button class="btn btn-accent btn-block" style="margin-top:12px;" onclick="generateTrip()">Generate List →</button></div>`;
     wrap.innerHTML = html;
   }else{
-    wrap.innerHTML = `
+    const mealNames = trip.selected
+      .map(rid=>recipes.find(r=>r.id===rid))
+      .filter(Boolean)
+      .map(r=>r.name);
+    let html = "";
+    if(mealNames.length>0){
+      html += `
+        <div class="card" style="margin-bottom:10px;">
+          <div style="font-size:13px; color:var(--text-dim); line-height:1.5;">Shopping for: <span style="color:var(--text); font-weight:600;">${mealNames.map(escapeHtml).join(", ")}</span></div>
+        </div>
+      `;
+    }
+    html += `
       <div class="row" style="margin-bottom:6px;">
         <button class="btn" onclick="editTripMeals()">← Edit</button>
         <button class="btn btn-danger" onclick="startNewTrip()">Start New Trip</button>
       </div>
     `;
+    wrap.innerHTML = html;
   }
 }
 function toggleMeal(id){
