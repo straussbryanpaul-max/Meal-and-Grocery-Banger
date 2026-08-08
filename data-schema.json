@@ -82,7 +82,7 @@
             "properties": {
               "name": { "type": "string" },
               "category": { "type": "string" },
-              "origin": { "type": "string", "enum": ["staple","recipe","check"], "description": "Where this line item came from" },
+              "origin": { "type": "string", "enum": ["staple","recipe","check","manual"], "description": "Where this line item came from — 'manual' is a mid-trip quick-add" },
               "recipeName": { "type": "string", "description": "Present when origin is 'recipe' — shown as a badge on the row" },
               "tag": { "type": "string", "description": "Display text: staple's qty, recipe ingredient's amount+unit, or empty for check items" },
               "checked": { "type": "boolean" }

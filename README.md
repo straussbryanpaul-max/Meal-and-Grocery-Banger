@@ -8,10 +8,10 @@ A grocery list + recipe app. Single-file web app — open `index.html` and go. N
 
 | View | Description |
 |------|-------------|
-| **Staples** | The stuff you always buy — milk, eggs, coffee. Add once, keep forever. Always included in the trip list. |
+| **Staples** | The stuff you always buy — milk, eggs, coffee. Add once, tap any item to edit its name/qty/category. Always included in the trip list. |
 | **Recipes** | Save your go-to meals with ingredients (amount + unit) and instructions. Paste a recipe from anywhere and let AI fill in the structured fields for you. |
 | **Check** | Occasional stuff — olive oil, batteries, foil. Not bought every trip; reviewed each time and only added if you say you're out. |
-| **Trip** | Hit "New Trip", pick which meals you're making and what you're out of (with a "last time" shortcut to reuse your previous picks), and get a shopping list = staples + those recipes' ingredients + anything marked out, merged and grouped by aisle. Check items off as you shop. |
+| **Trip** | Hit "New Trip", pick which meals you're making and what you're out of (with a "last time" shortcut to reuse your previous picks), and get a shopping list = staples + those recipes' ingredients + anything marked out, merged and grouped by aisle. Check items off as you shop, and if you run out of something mid-week, add it straight to the active list without losing your progress. |
 
 ---
 

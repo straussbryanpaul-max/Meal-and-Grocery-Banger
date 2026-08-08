@@ -296,6 +296,14 @@
   <!-- TRIP VIEW -->
   <section id="view-trip" class="view">
     <div id="tripPicker"></div>
+    <div class="card" id="tripQuickAdd" style="display:none;">
+      <label class="f" style="margin-top:0;">Ran out of something?</label>
+      <div class="row">
+        <input type="text" id="quickAddName" placeholder="e.g. Paper towels">
+        <select id="quickAddCat"></select>
+      </div>
+      <button class="btn btn-accent btn-block" style="margin-top:8px;" onclick="addTripItem()">+ Add to list</button>
+    </div>
     <div id="tripListWrap"></div>
   </section>
 
@@ -374,6 +382,27 @@
     <div class="row" style="margin-top:14px;">
       <button class="btn btn-danger" id="deleteRecipeBtn" style="display:none;" onclick="deleteRecipeFromEditor()">Delete</button>
       <button class="btn btn-accent" style="flex:2;" onclick="saveRecipe()">Save Recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAPLE EDIT MODAL -->
+<div class="modal-backdrop" id="stapleModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit Staple</h2>
+      <button class="close-x" onclick="closeModal('stapleModal')">✕</button>
+    </div>
+    <input type="hidden" id="stapleEditId">
+    <label class="f">Name</label>
+    <input type="text" id="stapleEditName" placeholder="e.g. Milk">
+    <label class="f">Qty (optional)</label>
+    <input type="text" id="stapleEditQty" placeholder="e.g. 1 gal">
+    <label class="f">Category</label>
+    <select id="stapleEditCat"></select>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn btn-danger" onclick="deleteStapleFromEditor()">Delete</button>
+      <button class="btn btn-accent" style="flex:2;" onclick="saveStapleEdit()">Save</button>
     </div>
   </div>
 </div>
@@ -521,6 +550,32 @@ function deleteStaple(id){
   staples = staples.filter(s=>s.id!==id);
   persistLocal(); pushCloud(); renderStaples();
 }
+function openStapleEditor(id){
+  const s = staples.find(s=>s.id===id);
+  if(!s) return;
+  document.getElementById("stapleEditId").value = s.id;
+  document.getElementById("stapleEditName").value = s.name;
+  document.getElementById("stapleEditQty").value = s.qty || "";
+  populateCategorySelect(document.getElementById("stapleEditCat"), s.category);
+  openModal("stapleModal");
+}
+function saveStapleEdit(){
+  const id = Number(document.getElementById("stapleEditId").value);
+  const name = document.getElementById("stapleEditName").value.trim();
+  if(!name){ showToast("Staple needs a name"); return; }
+  const s = staples.find(s=>s.id===id);
+  if(!s) return;
+  s.name = name;
+  s.qty = document.getElementById("stapleEditQty").value.trim();
+  s.category = document.getElementById("stapleEditCat").value;
+  persistLocal(); pushCloud(); closeModal("stapleModal"); renderStaples();
+  showToast("Staple updated");
+}
+function deleteStapleFromEditor(){
+  const id = Number(document.getElementById("stapleEditId").value);
+  deleteStaple(id);
+  closeModal("stapleModal");
+}
 function renderStaples(){
   populateCategorySelect(document.getElementById("stapleCat"));
   const wrap = document.getElementById("staplesList");
@@ -536,10 +591,10 @@ function renderStaples(){
     if(!items || !items.length) return;
     html += `<div class="section-title">${cat}</div><div class="card">`;
     items.forEach(s=>{
-      html += `<div class="item">
+      html += `<div class="item" style="cursor:pointer;" onclick="openStapleEditor(${s.id})">
         <div class="name">${escapeHtml(s.name)}</div>
         ${s.qty ? `<div class="qty">${escapeHtml(s.qty)}</div>` : ""}
-        <button class="icon-btn" onclick="deleteStaple(${s.id})">🗑️</button>
+        <button class="icon-btn" onclick="event.stopPropagation(); deleteStaple(${s.id})">🗑️</button>
       </div>`;
     });
     html += `</div>`;
@@ -887,12 +942,33 @@ function toggleTripItem(idx){
   persistTrip();
   renderTripList();
 }
+function addTripItem(){
+  const nameEl = document.getElementById("quickAddName");
+  const catEl = document.getElementById("quickAddCat");
+  const name = nameEl.value.trim();
+  if(!name) return;
+  trip.list.push({ name, category: catEl.value, origin:"manual", tag:"", checked:false });
+  nameEl.value = "";
+  persistTrip();
+  renderTripList();
+  showToast(name + " added to list");
+}
+function deleteTripItem(idx){
+  trip.list.splice(idx, 1);
+  persistTrip();
+  renderTripList();
+}
 function renderTripList(){
   const wrap = document.getElementById("tripListWrap");
+  const quickAdd = document.getElementById("tripQuickAdd");
   if(!trip.active || trip.list.length===0){
     wrap.innerHTML = "";
+    quickAdd.style.display = "none";
     return;
   }
+  quickAdd.style.display = "";
+  const catSel = document.getElementById("quickAddCat");
+  if(!catSel.options.length) populateCategorySelect(catSel);
   const byCat = {};
   trip.list.forEach((item, idx)=>{ (byCat[item.category||"Other"] ||= []).push({...item, idx}); });
   let html = "";
@@ -913,6 +989,7 @@ function renderTripList(){
         <div class="checkbox ${item.checked?"checked":""}" onclick="toggleTripItem(${item.idx})">${item.checked?"✓":""}</div>
         <div class="name">${escapeHtml(item.name)}</div>
         ${tagHtml}
+        <button class="icon-btn" onclick="deleteTripItem(${item.idx})">✕</button>
       </div>`;
     });
     html += `</div>`;
