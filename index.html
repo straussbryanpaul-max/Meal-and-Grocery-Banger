@@ -325,12 +325,23 @@
     <input type="text" id="setBinId" placeholder="e.g. 64f0...">
     <label class="f">JSONBin Master Key</label>
     <input type="text" id="setMasterKey" placeholder="$2a$10$...">
+    <div style="margin-top:10px; font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
+      <span class="sync-dot" id="syncDot"></span> <span id="syncStatus">Not connected</span>
+    </div>
+
+    <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
+
+    <p style="color:var(--text-dim); font-size:13px; line-height:1.5; margin-top:0;">
+      Paste a recipe from anywhere and have AI fill in the structured fields for you. Get a key at
+      <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a>.
+      Stored only in this browser's localStorage — never sent anywhere except Anthropic's API.
+    </p>
+    <label class="f">Anthropic API Key</label>
+    <input type="text" id="setApiKey" placeholder="sk-ant-...">
+
     <div class="row" style="margin-top:14px;">
       <button class="btn" onclick="closeModal('settingsModal')">Cancel</button>
       <button class="btn btn-accent" onclick="saveSettings()">Save</button>
-    </div>
-    <div style="margin-top:10px; font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;">
-      <span class="sync-dot" id="syncDot"></span> <span id="syncStatus">Not connected</span>
     </div>
   </div>
 </div>
@@ -343,6 +354,13 @@
       <button class="close-x" onclick="closeModal('recipeModal')">✕</button>
     </div>
     <input type="hidden" id="recipeId">
+
+    <div class="card" style="margin:0 0 16px; padding:12px;">
+      <label class="f" style="margin-top:0;">✨ Paste a recipe to auto-fill</label>
+      <textarea id="recipePaste" placeholder="Paste recipe text from anywhere — a website, a note, a text message..." style="min-height:80px;"></textarea>
+      <button class="btn btn-sm" id="autoFillBtn" style="margin-top:8px;" onclick="autoFillRecipe()">Auto-fill with AI</button>
+    </div>
+
     <label class="f">Recipe name</label>
     <input type="text" id="recipeName" placeholder="e.g. Chicken Stir Fry">
 
@@ -372,9 +390,10 @@ let staples = [];
 let recipes = [];
 let checkItems = [];
 let trip = { selected: [], checksOut: [], list: [], active: false };
+let lastMeals = [];
 
 /* ---------- Storage keys ---------- */
-const LS = { bid:"mg_bid", mk:"mg_mk", staples:"mg_staples", recipes:"mg_recipes", checks:"mg_checks", trip:"mg_trip" };
+const LS = { bid:"mg_bid", mk:"mg_mk", ak:"mg_ak", staples:"mg_staples", recipes:"mg_recipes", checks:"mg_checks", trip:"mg_trip", lastMeals:"mg_lastmeals" };
 
 function load(){
   staples = JSON.parse(localStorage.getItem(LS.staples) || "[]");
@@ -382,6 +401,7 @@ function load(){
   checkItems = JSON.parse(localStorage.getItem(LS.checks) || "[]");
   trip = JSON.parse(localStorage.getItem(LS.trip) || "null") || trip;
   if(!trip.checksOut) trip.checksOut = [];
+  lastMeals = JSON.parse(localStorage.getItem(LS.lastMeals) || "[]");
 }
 function persistLocal(){
   localStorage.setItem(LS.staples, JSON.stringify(staples));
@@ -463,12 +483,14 @@ function openSettings(){
   const { binId, key } = getCreds();
   document.getElementById("setBinId").value = binId;
   document.getElementById("setMasterKey").value = key;
+  document.getElementById("setApiKey").value = localStorage.getItem(LS.ak) || "";
   setSyncDot(getCreds().binId ? "ok" : "");
   openModal("settingsModal");
 }
 function saveSettings(){
   localStorage.setItem(LS.bid, document.getElementById("setBinId").value.trim());
   localStorage.setItem(LS.mk, document.getElementById("setMasterKey").value.trim());
+  localStorage.setItem(LS.ak, document.getElementById("setApiKey").value.trim());
   closeModal("settingsModal");
   showToast("Settings saved");
   pullCloud();
@@ -529,6 +551,7 @@ function renderStaples(){
 function openRecipeEditor(id){
   document.getElementById("recipeId").value = id || "";
   document.getElementById("ingredientRows").innerHTML = "";
+  document.getElementById("recipePaste").value = "";
   if(id){
     const r = recipes.find(r=>r.id===id);
     document.getElementById("recipeModalTitle").textContent = "Edit Recipe";
@@ -563,6 +586,88 @@ function addIngredientRow(ing){
     </div>
   `;
   wrap.appendChild(row);
+}
+async function autoFillRecipe(){
+  const text = document.getElementById("recipePaste").value.trim();
+  if(!text){ showToast("Paste some recipe text first"); return; }
+  const apiKey = localStorage.getItem(LS.ak) || "";
+  if(!apiKey){ showToast("Add an Anthropic API key in Settings first"); openSettings(); return; }
+
+  const btn = document.getElementById("autoFillBtn");
+  const origLabel = btn.textContent;
+  btn.textContent = "Parsing..."; btn.disabled = true;
+
+  try{
+    const recipe = await parseRecipeWithAI(text, apiKey);
+    document.getElementById("recipeName").value = recipe.name || "";
+    document.getElementById("recipeInstructions").value = recipe.instructions || "";
+    document.getElementById("ingredientRows").innerHTML = "";
+    (recipe.ingredients && recipe.ingredients.length ? recipe.ingredients : [{}]).forEach(ing=>addIngredientRow(ing));
+    showToast("Recipe filled in — review before saving");
+  }catch(e){
+    showToast(e.message || "Couldn't parse that — try again");
+  }finally{
+    btn.textContent = origLabel; btn.disabled = false;
+  }
+}
+async function parseRecipeWithAI(text, apiKey){
+  const schema = {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+      ingredients: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            amount: { type: "string", description: "Free-text amount, e.g. '2' or '1 1/2'. Empty string if not specified." },
+            unit: { type: "string", enum: UNITS },
+            category: { type: "string", enum: CATEGORIES }
+          },
+          required: ["name","amount","unit","category"],
+          additionalProperties: false
+        }
+      },
+      instructions: { type: "string", description: "Cooking steps, joined into one block of text. Empty string if none given." }
+    },
+    required: ["name","ingredients","instructions"],
+    additionalProperties: false
+  };
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-opus-5",
+      max_tokens: 2048,
+      output_config: {
+        effort: "low",
+        format: { type: "json_schema", schema }
+      },
+      messages: [{
+        role: "user",
+        content: `Extract a recipe from the text below into structured data. Pick the closest matching unit and category from the allowed lists — leave unit blank ("") if the ingredient has no natural unit (e.g. "3 eggs").\n\nText:\n${text}`
+      }]
+    })
+  });
+
+  if(!res.ok){
+    if(res.status===401) throw new Error("Invalid API key — check Settings");
+    throw new Error("AI request failed (" + res.status + ")");
+  }
+  const data = await res.json();
+  if(data.stop_reason === "refusal"){
+    throw new Error("AI declined to process that text");
+  }
+  const block = (data.content||[]).find(b=>b.type==="text");
+  if(!block) throw new Error("No response from AI");
+  return JSON.parse(block.text);
 }
 function saveRecipe(){
   const idVal = document.getElementById("recipeId").value;
@@ -667,7 +772,18 @@ function renderTripPicker(){
         <button class="btn btn-accent btn-block" onclick="generateTrip()">Generate List →</button>`;
       return;
     }
-    let html = `<div class="card">`;
+    let html = "";
+    if(lastMeals.length>0){
+      html += `
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div style="font-size:13px; color:var(--text-dim); line-height:1.5;">Last time: <span style="color:var(--text); font-weight:600;">${lastMeals.map(m=>escapeHtml(m.name)).join(", ")}</span></div>
+            <button class="btn btn-sm" onclick="useLastMeals()">Use these</button>
+          </div>
+        </div>
+      `;
+    }
+    html += `<div class="card">`;
     if(recipes.length>0){
       html += `
         <div class="section-title" style="margin-top:0;">Pick your meals</div>
@@ -700,6 +816,10 @@ function toggleMeal(id){
   if(i===-1) trip.selected.push(id); else trip.selected.splice(i,1);
   renderTripPicker();
 }
+function useLastMeals(){
+  trip.selected = lastMeals.map(m=>m.id).filter(id=>recipes.some(r=>r.id===id));
+  renderTripPicker();
+}
 function toggleCheckOut(id){
   const i = trip.checksOut.indexOf(id);
   if(i===-1) trip.checksOut.push(id); else trip.checksOut.splice(i,1);
@@ -711,6 +831,13 @@ function editTripMeals(){
   renderTrip();
 }
 function startNewTrip(){
+  if(trip.selected && trip.selected.length){
+    lastMeals = trip.selected
+      .map(rid=>recipes.find(r=>r.id===rid))
+      .filter(Boolean)
+      .map(r=>({id:r.id, name:r.name}));
+    localStorage.setItem(LS.lastMeals, JSON.stringify(lastMeals));
+  }
   trip = { selected: [], checksOut: [], list: [], active: false };
   persistTrip();
   renderTrip();

@@ -5,10 +5,12 @@
   "localStorage_keys": {
     "mg_bid": "JSONBin bin ID (string)",
     "mg_mk": "JSONBin master key (string)",
+    "mg_ak": "Anthropic API key (string) — used client-side to auto-fill recipes from pasted text",
     "mg_staples": "JSON array of Staple objects",
     "mg_recipes": "JSON array of Recipe objects",
     "mg_checks": "JSON array of CheckItem objects",
-    "mg_trip": "Current trip state (Trip object) — device-local only, not synced"
+    "mg_trip": "Current trip state (Trip object) — device-local only, not synced",
+    "mg_lastmeals": "Snapshot of the recipes selected on the last completed trip (array of {id, name}) — device-local only, not synced"
   },
 
   "schemas": {
@@ -53,6 +55,15 @@
         "id": { "type": "number" },
         "name": { "type": "string" },
         "category": { "type": "string", "enum": ["Produce","Dairy & Eggs","Meat & Seafood","Pantry","Frozen","Bakery","Beverages","Other"] }
+      }
+    },
+
+    "LastMealsEntry": {
+      "type": "object",
+      "description": "One entry in the mg_lastmeals snapshot — captured when 'Start New Trip' is pressed, from the trip being closed out.",
+      "properties": {
+        "id": { "type": "number", "description": "Recipe ID at time of capture" },
+        "name": { "type": "string", "description": "Recipe name at time of capture, kept even if the recipe is later renamed or deleted" }
       }
     },
 
